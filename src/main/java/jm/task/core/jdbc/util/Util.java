@@ -8,20 +8,25 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
 import org.hibernate.service.ServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+
 import java.util.Properties;
 
 public class Util {
-    private static final String DRIVER = "com.mysql.cj.jdbc.Driver";
-    private static final String URL = "jdbc:mysql://localhost:3306/mydbtest";
-    private static final String USER = "root";
-    private static final String PASSWORD = "root";
-    private static volatile Util instance; //volatile для мгновенной видимости изменений для всех потоков
-    public static SessionFactory sessionFactory; //фабрика сессий
+    private static volatile Util instance;
+    public static SessionFactory sessionFactory;
 
     // private для реализации Singleton
     private Util() {
         try {
-            Configuration configuration = getConfiguration();
+            // конфигурируем Hibernate внутри util
+            Configuration configuration = new Configuration(); //объкт для настройки hibernate
+            Properties properties = new Properties(); //объект для хранения настроек
+            properties.put(Environment.DRIVER, "com.mysql.cj.jdbc.Driver");
+            properties.put(Environment.URL, "jdbc:mysql://localhost:3306/mydbtest");
+            properties.put(Environment.USER, "root");
+            properties.put(Environment.PASS, "root");
+            properties.put(Environment.DIALECT, "org.hibernate.dialect.MySQLDialect");
+            configuration.setProperties(properties); //устанавливаем свойства в конф hibernate
             configuration.addAnnotatedClass(User.class); //указывает Hibernate, что класс User является сущностью (entity), которую нужно отображать на таблицу в базе данных
 
             ServiceRegistry serviceRegistry = new StandardServiceRegistryBuilder()
@@ -32,19 +37,6 @@ public class Util {
             System.err.println("Ошибка при создании SessionFactory: " + e.getMessage());
             throw new ExceptionInInitializerError(e);
         }
-    }
-
-    private static Configuration getConfiguration() {
-        Configuration configuration = new Configuration(); //объкт для настройки hibernate
-        Properties properties = new Properties(); //объект для хранения настроек
-        properties.put(Environment.DRIVER, DRIVER);
-        properties.put(Environment.URL, URL);
-        properties.put(Environment.USER, USER);
-        properties.put(Environment.PASS, PASSWORD);
-        properties.put(Environment.DIALECT, "org.hibernate.dialect.MySQLDialect");
-        configuration.addAnnotatedClass(User.class);
-        configuration.setProperties(properties); //устанавливаем свойства в конф hibernate
-        return configuration;
     }
 
     // реализуем шаблон Singleton
@@ -70,7 +62,7 @@ public class Util {
             try {
                 session.close();
             } catch (HibernateException e) {
-                System.err.println("Ошибка при закрытии сессии: " + e.getMessage());
+                System.err.println(e.getMessage());
             }
         }
     }

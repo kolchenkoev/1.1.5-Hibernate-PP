@@ -3,13 +3,10 @@ package jm.task.core.jdbc.dao;
 import jm.task.core.jdbc.model.User;
 import jm.task.core.jdbc.util.Util;
 import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.HibernateException;
-import javax.persistence.criteria.CriteriaQuery;
 import java.util.List;
 
-import static jm.task.core.jdbc.util.Util.sessionFactory;
 
 public class UserDaoHibernateImpl implements UserDao {
 
@@ -99,22 +96,24 @@ public class UserDaoHibernateImpl implements UserDao {
     @Override
     public List<User> getAllUsers() {
         Session session = util.getSession();
-        CriteriaQuery<User> criteriaQuery = session.getCriteriaBuilder().createQuery(User.class);  //CriteriaQuery - механизм Hib для создания запросов к базе данных, который позволяет нам формировать запросы через Java-код, а не SQL-строки напрямую (хотя он генерирует SQL под капотом)
-        criteriaQuery.from(User.class); //извлекаем из
         Transaction transaction = session.beginTransaction();
-        List<User> userList = session.createQuery(criteriaQuery).getResultList(); //создаем Query объект на основе созданного CriteriaQuery, выполняем запрос и возвращаем List<User>
+        List<User> userList = null;
         try {
-            transaction.commit();
+            userList = session.createQuery("FROM User", User.class).getResultList(); //JPQL-запрос для получения всех пользователей, указывает, что результат должен быть объектами типа User
+            transaction.commit();                                        //.getResultList() в   ыполняет запрос и возвращает список объектов типа User
             return userList;
+
         } catch (HibernateException e) {
             e.printStackTrace();
-            transaction.rollback();
+            if (transaction != null) {
+                transaction.rollback();
+            }
         } finally {
             if (session != null) {
                 util.closeSession(session);
             }
         }
-        return userList;
+        return userList; //возвращаем userList (даже если он null)
     }
 
     @Override
